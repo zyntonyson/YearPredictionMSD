@@ -1,0 +1,3 @@
+https://www.youtube.com/watch?v=E2d91v1Twcc
+https://cfss.uchicago.edu/setup/git-with-rstudio/
+http://www.geo.uzh.ch/microsite/reproducible_research/post/rr-rstudio-git/

@@ -97,4 +97,29 @@ data %>%
   aes(x=as.factor(decades),y=TimbreCov,fill=mean) +
   geom_tile() + 
   scale_fill_gradient(low="green", high="red")
+
+
+## ----->Se agrupa las decadas en el dataset original
   
+data %<>% 
+  mutate(decades=sapply(decades,
+                        function(x){ifelse(x<1950,1940,x)}))
+
+
+## Reduccion de dimension para visualizacion
+## 
+## 
+PCAVis<-data$decades %>% 
+  data.frame(.,prcomp(select(data,-year,-decades))$x) 
+  
+names(PCAVis)[1]<-'decades'
+
+PCAVis %>%
+  sample_frac(0.3) %>% 
+  ggplot() +
+  aes(x=PC1,y=PC2,color=as.factor(decades)) +
+  geom_point()
+
+###
+  
+

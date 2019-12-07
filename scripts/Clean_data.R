@@ -24,3 +24,18 @@ data %<>%
   mutate(decades=sapply(decades,function(x){ifelse(x<1950,1940,x)}))
 
 
+
+#dividimos nuestros datos en prueba y validación
+
+#importante la semilla
+n = nrow(data)
+
+set.seed(1)
+muestra <- sample(1:nrow(data), n*.6)
+
+X_tr = as.matrix(data[muestra,-1])
+Y_tr = as.matrix(data[muestra,1])
+
+X_te = as.matrix(data[-muestra,-1])
+Y_te = as.matrix(data[-muestra,1])
+

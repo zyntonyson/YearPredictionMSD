@@ -1,0 +1,43 @@
+---
+title: "Aplicación de modelos de regresión para predecir el año de lanzamiento de una canción a partir de las características del audio"
+author: Ester Aguayo \and Román Castillo
+institute: Unidad Monterrey
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  beamer_presentation: 
+    theme: "Metropolis"
+    includes:
+      in_header: preamble.txt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, out.width='90%', fig.pos= "H",fig.align='center' , warning = FALSE)
+library(tidyverse)
+library(knitr)
+library(magrittr)
+library(broom)
+```
+
+# Antecedentes
+
+
+##  Sobre los datos
+
+Lorem Ipsum Lorem Ipsum Lorem IpsumLorem IpsumLorem IpsumLorem Ipsum
+
+
+# Métodos y resultados
+
+## Análisis exploratorio
+
+Lorem Ipsum Lorem Ipsum Lorem IpsumLorem IpsumLorem IpsumLorem Ipsum
+
+
+## Regresion múltiple
+
+Lorem Ipsum Lorem Ipsum Lorem IpsumLorem IpsumLorem IpsumLorem Ipsum
+
+# Conclusiones
+
+---
+Lorem Ipsum Lorem Ipsum Lorem IpsumLorem IpsumLorem IpsumLorem Ipsum

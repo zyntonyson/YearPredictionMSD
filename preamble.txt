@@ -1,0 +1,86 @@
+  \usepackage{graphicx}
+  \usepackage[frenchb]{babel}
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{amsmath}  
+  \usepackage{amsfonts}
+  \usepackage{amssymb}
+  \usepackage{float}   
+  \renewcommand{\figurename}{Figura}
+  \renewcommand{\tablename}{Tabla}
+  \setcounter{tocdepth}{5} 
+  \setcounter{secnumdepth}{5}
+  \usepackage{longtable} 
+  \usepackage{tikz}
+  \usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+  \renewcommand*{\algorithmcfname}{Algoritmo}
+  \SetAlFnt{\small}
+  \SetAlCapFnt{\large}
+  \SetAlCapNameFnt{\large}
+  \usepackage{algorithmic}
+  \algsetup{linenosize=\tiny}
+  \definecolor{crojo}{rgb}{.45,.14,.23}
+  \definecolor{cgris}{rgb}{.53,.53,.55}
+  \definecolor{ccgris}{rgb}{.12,.12,.30}
+  \definecolor{cnaranja}{rgb}{1,.5,0}
+  \setbeamercolor{normal text}{fg=ccgris}
+  \setbeamercolor{frametitle}{bg=crojo, fg=cgris}
+  \setbeamercolor{section title}{fg=cgris}
+  \setbeamercolor*{title}{fg = crojo}
+  \setbeamercolor{author}{fg=crojo}
+  \setbeamercolor{date}{fg=crojo}
+%%Cintilla    
+\titlegraphic{
+  \begin{picture}(0,0)
+    \put(305,-120){\makebox(0,0)[rt]{\includegraphics[width=4cm]{E:/Drive/MCE/Plantillas CIMAT/img/LOGOTIPO SIN FONDO VERTICAL.png}}}
+  \end{picture}}
+  \makeatletter
+%%frametitle cintilla de   
+\setbeamertemplate{frametitle}{
+   \nointerlineskip
+   \begin{beamercolorbox}[
+      wd=\paperwidth,
+      sep=0pt,
+      leftskip=\metropolis@frametitle@padding,
+      rightskip=\metropolis@frametitle@padding,
+    ]{frametitle}
+   \metropolis@frametitlestrut@start
+   \insertframetitle
+   \nolinebreak
+   \metropolis@frametitlestrut@end
+   \hfill
+   \includegraphics[height=5ex,keepaspectratio]{E:/Drive/MCE/Plantillas CIMAT/img/LOGOTIPO SIN FONDO-05.png}
+   \end{beamercolorbox}}
+  \makeatother
+  \setbeamertemplate{mini frame}{}
+  \setbeamertemplate{mini frame in current section}{}
+  \setbeamertemplate{mini frame in current subsection}{}
+  \setbeamercolor{section in head/foot}{fg=normal text.bg, bg=crojo}
+  \setbeamercolor{subsection in head/foot}{fg=normal text.bg, bg=crojo}
+  \setbeamertemplate{frame footer}{\hfill\insertshorttitle}
+  \setbeamerfont{page number in head/foot}{size=\tiny}
+ \setbeamercolor{footline}{fg=gray}
+%%Progressbar
+\usepackage[export]{adjustbox}
+
+\makeatletter
+\setlength{\metropolis@frametitle@padding}{1.8ex}% <- default 2.2 ex
+\setbeamertemplate{frametitle}{%
+    \nointerlineskip%
+    \begin{beamercolorbox}[%
+        wd=\paperwidth,%
+        sep=0pt,%
+        leftskip=\metropolis@frametitle@padding,%
+        rightskip=\metropolis@frametitle@padding,%
+        ]{frametitle}%
+        \metropolis@frametitlestrut@start%
+        \insertframetitle%
+        \nolinebreak%
+        \metropolis@frametitlestrut@end%
+        \hfill
+        \includegraphics[height=3ex,keepaspectratio,valign=c]{E:/Drive/MCE/Plantillas CIMAT/img/LOGOTIPO SIN FONDO-05.png}
+    \end{beamercolorbox}
+    \usebeamertemplate*{progress bar in head/foot}
+}
+
+\setlength{\metropolis@progressinheadfoot@linewidth}{3pt}% just to better see that it's working

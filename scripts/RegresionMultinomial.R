@@ -7,3 +7,40 @@
 # https://rpubs.com/heruwiryanto/multinom-reg
 # https://www.institutomora.edu.mx/testU/SitePages/martinpaladino/modelos_logit_con_R.html#modelos-ligit-multinomiales.
 # https://stats.idre.ucla.edu/r/dae/multinomial-logistic-regression/
+# 
+
+
+
+library(nnet) # Regresion multinomial
+library(foreign)
+library(tidyverse)
+library(glmnet)  # Regresion multinomial más Lasso
+
+
+####### REGRESION MULTINOMIAL ###################################
+
+#  Data
+set.seed(1)
+muestra <- sample(1:nrow(data), nrow(data)*.6)
+
+
+# formula
+x<-paste(names(data[,names(data)!='decades']),collapse = 
+        '+')
+formula<-as.formula(paste('decades~',x,collapse=''))
+
+# Ajuste
+mod.MN<-multinom(formula,data=data[muestra,])
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,8 @@
+Con respecto a características de los datos
+
+https://datascience.stackovernet.com/es/q/3323
+
+# Diccionario de nombres y artistas
+# 
+
+http://millionsongdataset.com/sites/default/files/AdditionalFiles/tracks_per_year.txt

@@ -16,7 +16,7 @@ affiliation:
         - name: Castillo C, Román
     
 abstract: |
-  El aleaje es un fénomeno ampliamente estudiado y descrito usando modelos estocásticos. En este trabajo, a modo de ejercicio se usan técnicas multivariadas en busca de información de interés relativa al oleaje
+  Se presenta el trabajo como reporte final de la materia 'Cómputo Estadístico', se explora la  eficacia de métodos lineales y lineales generalizados para la predicción del año de lanzamiento de una canción. Tambien se presenta la comparacíón con otros métodos de clasificación
 header-includes:
   \usepackage{graphicx}
   \usepackage{amsmath}  
@@ -78,6 +78,8 @@ muestra <- sample(1:nrow(data), n*p)
 Introducción
 =============
 
+Los métodos de predicción consiste una herramienta fundamental en esta época de la abundancia de datos. Muchos negocios, día con  día producen enormes cantidades de nueva información, por ejemplo en la industría musical, horas de nueva música. Muchas indstrias
+
 ## Objetivos
 
 
@@ -88,7 +90,7 @@ Métodos y resultados
 
 ## Análisis exploratorio
 
-```{r}
+```{r }
 # Presenta el MSE a diferente número de predictores
 mse_plot<-function(mse,sub,ylab)
 {
@@ -138,10 +140,7 @@ modelo_bw <- regsubsets(X_tr, Y_tr, method = "backward", nvmax = nVar)
 
  * Forward stepwise selection
  
-```{r}
-
-
-
+```{r fig.cap='Forward stepwise selection'}
 #modelo con paso fwd
 msum_fwd  <- summary(modelo_fw )
 
@@ -160,29 +159,53 @@ for (i in 1:nVar)
 }
 
 #grafica
+#grafica
 par(mfrow=c(2,2))
-plot(msum_fwd$rsq ,xlab="Núm Variables",ylab="R cuadrado",type="l", pch=19, col="#95505c")
+plot(msum_fwd$adjr2 ,xlab="Núm Variables",ylab="R cuadrado aj",type="l", pch=19, col="#95505c")
+points(which.max(msum_fwd$adjr2),max(msum_fwd$adjr2),col='red',pch='*',cex=2)
 plot(msum_fwd$bic ,xlab="Núm Variables", ylab="Bic",type="l", pch=19, col="#5c9550")
+points(which.min(msum_fwd$bic),min(msum_fwd$bic),col='red',pch='*',cex=2)
 plot(msum_fwd$cp ,xlab="Núm Variables",ylab="Cp", type="l", pch=19, col="#505c95")
+points(which.min(msum_fwd$cp),min(msum_fwd$cp),col='red',pch='*',cex=2)
 plot(1:nVar,mse_train,xlab="Núm Variables",ylab="MSE", type="l", pch=19, col="firebrick")
 lines(1:nVar,mse_test,type="l", pch=19, col="firebrick")
-
-
-
+points(which.min(mse_test),min(mse_test),col='red',pch='*',cex=2)
 
 ```
  
 
+   * Forward stepwise selection
 
-```{r}
+
+```{r  fig.cap='Backward stepwise selection'}
 msum_bwd  <- summary(modelo_bw )
 #grafica
-par(mfrow=c(3,1))
-plot(msum_bwd$rsq ,xlab="Núm Variables",ylab="R cuadrado",type="b", pch=19, col="#95505c")
-plot(msum_bwd$bic ,xlab="Núm Variables", ylab="Bic",type="b", pch=19, col="#5c9550")
-plot(msum_bwd$cp ,xlab="Núm Variables",ylab="Cp", type="b", pch=19, col="#505c95")
+# Calculo del MSE train
+#test.mat<-model.matrix(year~.,data=data)
+mse_test<-rep(0,nVar)
+mse_train<-rep(0,nVar)
 
-par(mfrow=c(1,1))
+for (i in 1:nVar)
+{
+   coefi = coef(modelo_bw, id=i)
+   pred = test.mat[,names(coefi)]%*%coefi
+   mse_train[i] = mean((data$year[muestra]-pred[muestra])^2)
+   mse_test[i] = mean((data$year[-muestra]-pred[-muestra])^2)
+  
+}
+
+#grafica
+par(mfrow=c(2,2))
+plot(msum_bwd$adjr2 ,xlab="Núm Variables",ylab="R cuadrado aj",type="l", pch=19, col="#95505c")
+points(which.max(msum_bwd$adjr2),max(msum_bwd$adjr2),col='red',pch='*',cex=2)
+plot(msum_bwd$bic ,xlab="Núm Variables", ylab="Bic",type="l", pch=19, col="#5c9550")
+points(which.min(msum_bwd$bic),min(msum_bwd$bic),col='red',pch='*',cex=2)
+plot(msum_bwd$cp ,xlab="Núm Variables",ylab="Cp", type="l", pch=19, col="#505c95")
+points(which.min(msum_bwd$cp),min(msum_bwd$cp),col='red',pch='*',cex=2)
+plot(1:nVar,mse_train,xlab="Núm Variables",ylab="MSE", type="l", pch=19, col="firebrick")
+lines(1:nVar,mse_test,type="l", pch=19, col="firebrick")
+points(which.min(mse_test),min(mse_test),col='red',pch='*',cex=2)
+
 ```
 
 
@@ -190,7 +213,7 @@ par(mfrow=c(1,1))
 
 ### Regresión con contracción  Lasso
 
-```{r}
+```{r eval=FALSE}
 # REGRESION LASSO
 
 

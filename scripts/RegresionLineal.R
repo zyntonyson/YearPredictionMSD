@@ -6,6 +6,8 @@ library("MASS")
 library("tidyverse")
 library("magrittr")
 library("glmnet")
+library("pls")
+
 
 #lectura de archivos
 data <- read_csv("data/YearPredictionMSD.txt", 
@@ -32,33 +34,39 @@ Y_tr = as.matrix(data[muestra,1])
 X_te = as.matrix(data[-muestra,-1])
 Y_te = as.matrix(data[-muestra,1])
 
+nVar<-90
 
 # seleccion mejor subconjunto de variables
 
-modelo_fw <- regsubsets(X_tr, Y_tr, method = "forward",  nvmax = 50)
-modelo_bw <- regsubsets(X_tr, Y_tr, method = "backward", nvmax = 50)
+modelo_fw <- regsubsets(X_tr, Y_tr, method = "forward",  nvmax = nVar)
+modelo_bw <- regsubsets(X_tr, Y_tr, method = "backward", nvmax = nVar)
 
 #modelo con paso fwd
 
 msum_fwd  <- summary(modelo_fw )
-#grafica
-par(mfrow=c(3,2))
-plot(msum_fwd$rsq ,xlab="Núm Variables",ylab="R cuadrado",type="b", pch=19, col="#95505c")
-plot(msum_fwd$bic ,xlab="Núm Variables", ylab="Bic",type="b", pch=19, col="#5c9550")
-plot(msum_fwd$cp ,xlab="Núm Variables",ylab="Cp", type="b", pch=19, col="#505c95")
-
-par(mfrow=c(1,1))
 
 #modelo con paso backward
 
 msum_bwd  <- summary(modelo_bw )
 #grafica
-par(mfrow=c(3,1))
-plot(msum_bwd$rsq ,xlab="Núm Variables",ylab="R cuadrado",type="b", pch=19, col="#95505c")
+par(mfrow=c(3,2))
+plot(msum_fwd$rsq ,xlab="Núm Variables", ylab="R cuadrado",type="b", pch=19, col="#95505c")
+plot(msum_bwd$rsq ,xlab="Núm Variables", ylab="R cuadrado",type="b", pch=19, col="#95505c")
 plot(msum_bwd$bic ,xlab="Núm Variables", ylab="Bic",type="b", pch=19, col="#5c9550")
-plot(msum_bwd$cp ,xlab="Núm Variables",ylab="Cp", type="b", pch=19, col="#505c95")
+plot(msum_fwd$bic ,xlab="Núm Variables", ylab="Bic",type="b", pch=19, col="#5c9550")
+plot(msum_fwd$cp  ,xlab="Núm Variables", ylab="Cp", type="b", pch=19, col="#505c95")
+plot(msum_bwd$cp  ,xlab="Núm Variables", ylab="Cp", type="b", pch=19, col="#505c95")
 
 par(mfrow=c(1,1))
+
+
+# #grafica
+# par(mfrow=c(3,1))
+# plot(msum_bwd$rsq ,xlab="Núm Variables",ylab="R cuadrado",type="b", pch=19, col="#95505c")
+# plot(msum_bwd$bic ,xlab="Núm Variables", ylab="Bic",type="b", pch=19, col="#5c9550")
+# plot(msum_bwd$cp ,xlab="Núm Variables",ylab="Cp", type="b", pch=19, col="#505c95")
+
+#par(mfrow=c(1,1))
 
 #aun seleccionando todas las variables el R_cuadrado es muy bajo, del .15, por lo que quizá la regresion no es la mejor opción
 # veremos las 15 variables más importantes
@@ -70,35 +78,69 @@ coef_fw <- coef(modelo_fw, 15)
 names(coef_bw) [is.na ( match(names(coef_bw),names( coef_fw)) )]
 names(coef_fw) [is.na ( match(names(coef_fw),names( coef_bw)) )]
 
-mse_test_new <- vector()
-for (i in 1:20){
-  coefs <- coef(m_full,i)
-  indice <- match(names(coefs)[-1],let)
-  X1_test <- cbind(1,X_test[,indice])
+mse_test_bw <- vector()
+
+for (i in 1:nVar){
+  coefs <- coef(modelo_bw,i)
+  indice <- match(names(coefs)[-1],colnames(X_te))
+  X1_test <- cbind(1,X_te[,indice])
   Y_gorro <- X1_test%*%coefs
-  mse_test_new <- c(mse_test_new, mean((Y_test-Y_gorro)^2))    
+  mse_test_bw <- c(mse_test_bw, mean((Y_te-Y_gorro)^2))    
 }
 
 
+mse_test_fw <- vector()
+for (i in 1:nVar){
+  coefs <- coef(modelo_fw,i)
+  indice <- match(names(coefs)[-1],colnames(X_te))
+  X1_test <- cbind(1,X_te[,indice])
+  Y_gorro <- X1_test%*%coefs
+  mse_test_fw <- c(mse_test_fw, mean((Y_te-Y_gorro)^2))    
+}
 
-# REGRESION RIDGE
+
+plot(mse_test_bw,type="b", pch=19, ylab="Error cuadrático Medio - PRUEBA",xlab="Número de variables", main ="Modelo Paso Backward" )
+
+plot(mse_test_fw,type="b", pch=19, ylab="Error cuadrático Medio - PRUEBA",xlab="Número de variables", main ="Modelo Paso Forward" )
 
 
-data_mat_tr <- model.matrix(year ~ ., data = data)
+#### REGRESION LASSO ####
+
+
+mat_tr <- model.matrix(year ~ ., data = data[muestra,])
+mat_te <- model.matrix(year ~ ., data = data[-muestra,])
+
 
 # Conjunto de valores de lambda 
 lambda = 10 ^ seq(from = -4, to = 4, length = 100)
 # 10-fold cross validation para obtener el mejor lambda
-set.seed(12)
-cv.ridge <- cv.glmnet(x = data_mat, y = Y, alpha = 0, lambda = lambda, thresh = 1e-12, type.measure="mse")
+set.seed(8)
+#set.seed(1)
+#cv_error_lasso <- cv.glmnet(x = x, y = y, alpha = 1, nfolds = 10)
+cv_lasso <- cv.glmnet(x = mat_tr, y = Y_tr, alpha = 1, lambda = lambda, thresh = 1e-12, type.measure="mse",nfolds = 10)
+plot(cv_lasso)
+l_lasso <- cv_lasso$lambda.min
+l_lasso <- cv_lasso$lambda.1se
 
-plot(cv.ridge)  
+#modelo lasso
+model_lasso <- glmnet (mat_tr,Y_tr, alpha =1, lambda =l_lasso, thresh =1e-8) 
 
-cv.ridge$lambda.min
-glmnet(X,Y)
-# Se excluye la primera columna con los nombres de las universidades
-modelo.ridge <- glmnet(X, Y, alpha = 0)
-# Coeficientes del modelo
-predict(modelo.ridge, type = "coefficients", s = cv.ridge$lambda.min)
+#evaluamos el modelo
+ypred_lasso <- predict(model_lasso ,s=l_lasso ,newx=mat_te) 
+#error cuadrático medio de prueba
+msete_lasso <- mean((ypred_lasso - Y_te)^2)
+msete_lasso 
 
-filter()
+coef(model_lasso)
+
+
+##### PCR #####
+
+model_pcr <- pcr(year ~ ., data=data[muestra,], scale=TRUE,validation ="CV")
+summary(model_pcr)
+
+validationplot(model_pcr,val.type="MSEP")
+
+#Evaluamos el modelo
+ypred_pcr <- predict(model_pcr, X_te, ncomp=39) [,1,]
+mean((ypred_pcr- Y_te)^2) 

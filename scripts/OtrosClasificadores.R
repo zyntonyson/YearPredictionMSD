@@ -1,9 +1,11 @@
+# OTROS CLASIFICADORES
+
+library("e1071")
 library("tidyverse")
 library("magrittr")
 library("ROSE")
 # Cargar datos
-data <- read_csv("data/YearPredictionMSD.txt", 
-                 col_names = FALSE)
+data <- read_csv("data/YearPredictionMSD.txt", col_names = FALSE)
 
 
 
@@ -22,17 +24,15 @@ names(data)<-c('year',
 #dividimos nuestros datos en prueba y validación
 #importante la semilla
 n = nrow(data)
-
+p<-0.6
 set.seed(1)
-muestra <- sample(1:nrow(data), n/2)
+muestra <- sample(1:nrow(data), n*p)
 
 X_tr = as.matrix(data[muestra,-1])
 Y_tr = as.matrix(data[muestra,1])
 
 X_te = as.matrix(data[-muestra,-1])
 Y_te = as.matrix(data[-muestra,1])
-
-
 
 
 # Agrupando las canciones por decadas, las canciones de las decadas 20 y 40 
@@ -62,3 +62,9 @@ set.seed(3)
 db_tr <- data_tr %>% group_by(decades) %>% sample_n(1500)
 db_te <- data_te %>% group_by(decades) %>% sample_n(1000)
 
+db_tr <- db_tr[,-1]
+db_te <- db_te[,-1]
+# SUPORT VECTOR MACHINE
+
+modelo_svm <- tune("svm", decades ~ ., data = db_tr, kernel = "linear", 
+     ranges = list(cost = c( 0.001,0.1, 1)))

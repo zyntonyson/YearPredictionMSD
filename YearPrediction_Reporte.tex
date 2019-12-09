@@ -327,7 +327,7 @@
 % Pandoc syntax highlighting
 
 % Pandoc header
-\usepackage{graphicx} \usepackage{amsmath} \usepackage{algorithm} \usepackage{algorithmic} \renewcommand{\figurename}{Figura} \renewcommand{\tablename}{Tabla}
+\usepackage{graphicx} \usepackage{amsmath} \usepackage{algorithm} \usepackage{algorithmic} \usepackage{array} \renewcommand{\figurename}{Figura} \renewcommand{\tablename}{Tabla}
 
 \setcounter{tocdepth}{5} \setcounter{secnumdepth}{5}
 
@@ -428,9 +428,10 @@ Unidad Monterrey
 % As a general rule, do not put math, special symbols or citations
 % in the abstract
 \begin{abstract}
-El aleaje es un fénomeno ampliamente estudiado y descrito usando modelos
-estocásticos. En este trabajo, a modo de ejercicio se usan técnicas
-multivariadas en busca de información de interés relativa al oleaje
+Se presenta el trabajo como reporte final de la materia `Cómputo
+Estadístico', se explora la eficacia de métodos lineales y lineales
+generalizados para la predicción del año de lanzamiento de una canción.
+Tambien se presenta la comparacíón con otros métodos de clasificación
 \end{abstract}
 
 % keywords
@@ -458,14 +459,61 @@ multivariadas en busca de información de interés relativa al oleaje
 \hypertarget{introduccion}{%
 \section{Introducción}\label{introduccion}}
 
+Los métodos de predicción consiste una herramienta fundamental en esta
+época de la abundancia de datos. Muchos negocios, día con día producen
+enormes cantidades de nueva información, por ejemplo en la industría
+musical, horas de nueva música. Una tarea de interés, es poder
+determinar el año de lanzamiento. Como parte de los recursos para la
+solución de esta tarea, se cuenta con el \emph{Million Song Dataset}
+(MSD) que es un \emph{data} de acceso gratuito de características de
+audio y metadatos de un millón de piezas musicales contemporaneas. Entre
+los metadatos disponibles se encuetra el año de lanzamiento de cada
+pieza.
+
 \hypertarget{objetivos}{%
 \subsection{Objetivos}\label{objetivos}}
+
+Usando el \textbf{MSD} se plantean los siguientes objetivos
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Considerando al año de lanzamiento como variable númerica continua,
+  ajustar un modelo de regresión, usando como predictores
+  características del audio
+\item
+  Ajustar un clasificador basado en regresión multiclase para predecir
+  el año de lanzamiento de una canción
+\item
+  Comparar los resultados con otros clasificadores tales como SVM y NN
+\end{enumerate}
 
 \hypertarget{metodos-y-resultados}{%
 \section{Métodos y resultados}\label{metodos-y-resultados}}
 
 \hypertarget{analisis-exploratorio}{%
 \subsection{Análisis exploratorio}\label{analisis-exploratorio}}
+
+\textbf{YearPredictionMSD} es un \emph{subset} del \textbf{MSD},
+destinado a la tarea de prediccón del año de lanzamiento de un track.
+Esta formado por 515345 registros de canciones correspondientes a 90
+características tomadas de cada composición. Las características fueron
+obtenidas del API de \textbf{Echo Nest}. Donde cada composición fue
+divida en doce segmentos. De los cuales se recuperan los promedios y
+covarianzas de todos ellos.
+
+Con respecto a la cantidad de registros por año de lanzamiento, el
+conjunto de datos se encuetra altamente desbalanceado. Más del 80\%
+correponde a canciones a partir de la primera decada del año 2000.
+
+\begin{figure}[ht]
+
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-1-1} 
+
+}
+
+\caption{Distribución de las canciones por año}\label{fig:unnamed-chunk-1}
+\end{figure}
 
 \hypertarget{regresion-multiple}{%
 \subsection{Regresión múltiple}\label{regresion-multiple}}
@@ -480,7 +528,14 @@ subconjunto)}\label{regresion-ordinaria-mejor-subconjunto}}
   Forward stepwise selection
 \end{itemize}
 
-\begin{center}\includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-4-1} \end{center}
+\begin{figure}[ht]
+
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-5-1} 
+
+}
+
+\caption{Forward stepwise selection}\label{fig:unnamed-chunk-5}
+\end{figure}
 
 \begin{itemize}
 \tightlist
@@ -488,7 +543,14 @@ subconjunto)}\label{regresion-ordinaria-mejor-subconjunto}}
   Forward stepwise selection
 \end{itemize}
 
-\begin{center}\includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-5-1} \end{center}
+\begin{figure}[ht]
+
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-6-1} 
+
+}
+
+\caption{Backward stepwise selection}\label{fig:unnamed-chunk-6}
+\end{figure}
 
 \hypertarget{regresion-con-contraccion-lasso}{%
 \subsubsection{Regresión con contracción
@@ -502,12 +564,100 @@ principales}\label{regresion-con-componentes-principales}}
 \subsection{Enfoque problema de la
 clasificación}\label{enfoque-problema-de-la-clasificacion}}
 
+Un mejor enfoque para el problema, es considerarlo como un problema de
+clasificación multiclase, por tanto probaremos ahora con algunos
+clasificadores y tambien comparar desempeños
+
 \hypertarget{downsampling}{%
 \subsubsection{Downsampling}\label{downsampling}}
+
+Nuestro dataset tiene algunas características que pueden dificultar la
+tarea. Primero se encuentra altamente desbalanceado, es decir pocas
+categorias (años de lanzamiento) agrupan un volumen imporante de los
+datos, lo cual estorba el aprendizaje para categorías de menor volumen.
+Por otra parte existen muchas categorias, es decir muchos años por
+predecir, esto aumenta el costo computacional al ajustar un modelo
+adecuado. Así se realizan los siguientes ajustes en el dataset
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Agrupamos las piezas musicales por década del lanzamiento
+\item
+  Seleccionamos aleatoriamente una muestra de 1000 ejemplos por década.
+\end{enumerate}
+
+La gráfica muestra la frecuencia por clases en el conjunto balanceado.
+
+\begin{figure}[ht]
+
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-11-1} 
+
+}
+
+\caption{Dataset balanceado}\label{fig:unnamed-chunk-11}
+\end{figure}
+
+Como parte de la exploración del conjunto de datos, tratamos de
+identificar alguna variable que pueda ser buen discriminante de las
+clases. En los gráficos de muestra la variabilidad de la media de los
+tracks agrupados por décadas tanto en las variables \texttt{TimbreAvg}y
+\texttt{TimbreCov}. Se muestra la dispersión
+
+\begin{figure}[ht]
+
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-12-1} 
+
+}
+
+\caption{Dispersión de los décadas sobre TimbreAvg y TimbreCov }\label{fig:unnamed-chunk-12}
+\end{figure}
+
+Los gráficos muestran un fuerte sobreempalme de las distribuciones de
+los datos sobre las variables de interés incluso en las que tienen una
+`mayor variabilidad', tal y como se observa:
+
+\begin{figure}[ht]
+
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-13-1} 
+
+}
+
+\caption{Distribución de los datos}\label{fig:unnamed-chunk-13}
+\end{figure}
 
 \hypertarget{regresion-multinomial-con-lasso}{%
 \subsubsection{Regresión multinomial con
 Lasso}\label{regresion-multinomial-con-lasso}}
+
+hjklñ
+
+\begin{center}\includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-15-1} \end{center}
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Predicción}
+\end{itemize}
+
+\begin{table}[!t]
+\centering
+\caption{Matriz de confusion modelo multinomial} 
+\begin{tabular}{r|rrrrrrr}
+  \hline
+ & 1950 & 1960 & 1970 & 1980 & 1990 & 2000 & 2010 \\ 
+  \hline
+1950 & 675 & 171 &  53 &  50 &  18 &  24 &  14 \\ 
+  1960 & 225 & 384 & 157 &  72 &  46 &  60 &  26 \\ 
+  1970 & 102 & 164 & 395 & 177 &  65 &  63 &  48 \\ 
+  1980 &  91 &  91 & 146 & 436 &  89 &  65 &  58 \\ 
+  1990 &  99 &  97 &  91 & 202 & 213 & 148 & 147 \\ 
+  2000 &  56 &  48 &  53 &  55 & 104 & 290 & 375 \\ 
+  2010 &  34 &  50 &  62 &  55 &  75 & 249 & 532 \\ 
+   \hline
+\end{tabular}
+\end{table}
 
 \hypertarget{regresion-multinomial-con-componentes-principales}{%
 \subsubsection{Regresión multinomial con componentes
@@ -519,35 +669,6 @@ clasificación}\label{otros-metodos-de-clasificacion}}
 
 \hypertarget{conclusiones}{%
 \section{Conclusiones}\label{conclusiones}}
-
-\hypertarget{acknowledgment}{%
-\section{Acknowledgment}\label{acknowledgment}}
-
-The authors would like to thank\ldots{}
-
-\hypertarget{bibliography-styles}{%
-\section{Bibliography styles}\label{bibliography-styles}}
-
-Here are two sample references: Feynman and Vernon Jr. (1963; Dirac
-1953).
-
-\newpage
-
-\hypertarget{references}{%
-\section*{References}\label{references}}
-\addcontentsline{toc}{section}{References}
-
-\hypertarget{refs}{}
-\leavevmode\hypertarget{ref-Dirac1953888}{}%
-Dirac, P.A.M. 1953. ``The Lorentz Transformation and Absolute Time.''
-\emph{Physica} 19 (1--12): 888--96.
-\url{https://doi.org/10.1016/S0031-8914(53)80099-6}.
-
-\leavevmode\hypertarget{ref-Feynman1963118}{}%
-Feynman, R.P, and F.L Vernon Jr. 1963. ``The Theory of a General Quantum
-System Interacting with a Linear Dissipative System.'' \emph{Annals of
-Physics} 24: 118--73.
-\url{https://doi.org/10.1016/0003-4916(63)90068-X}.
 
 \end{document}
 

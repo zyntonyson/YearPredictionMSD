@@ -22,6 +22,7 @@ header-includes:
   \usepackage{amsmath}  
   \usepackage{algorithm}
   \usepackage{algorithmic}
+  \usepackage{array}
   \renewcommand{\figurename}{Figura}
   \renewcommand{\tablename}{Tabla}
   \setcounter{tocdepth}{5} 
@@ -40,11 +41,9 @@ library(knitr)
 library(xtable)
 library(broom)
 library(gridExtra)
-library("leaps")
-library("MASS")
-library("tidyverse")
-library("magrittr")
-library("glmnet")
+library(leaps)
+library(MASS)
+library(glmnet)
 
 
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, out.width='60%', fig.pos= "ht",fig.align='center' , warning = FALSE,comment=NA)
@@ -78,17 +77,35 @@ muestra <- sample(1:nrow(data), n*p)
 Introducción
 =============
 
-Los métodos de predicción consiste una herramienta fundamental en esta época de la abundancia de datos. Muchos negocios, día con  día producen enormes cantidades de nueva información, por ejemplo en la industría musical, horas de nueva música. Muchas indstrias
+Los métodos de predicción consiste una herramienta fundamental en esta época de la abundancia de datos. Muchos negocios, día con  día producen enormes cantidades de nueva información, por ejemplo en la industría musical, horas de nueva música. Una tarea de interés, es poder determinar el año de lanzamiento. Como  parte de los recursos para la solución de esta tarea, se cuenta con el *Million Song Dataset* (MSD) que es un *data* de acceso gratuito de características de audio y metadatos de un millón de piezas musicales contemporaneas. Entre los metadatos disponibles se encuetra el año de lanzamiento de cada pieza.
 
 ## Objetivos
 
+Usando el **MSD** se plantean los siguientes objetivos
 
+1. Considerando al año de lanzamiento como variable númerica continua, ajustar un modelo de regresión, usando como predictores características del audio
+
+1. Ajustar un clasificador basado en regresión multiclase para predecir el año de lanzamiento de una canción
+
+1. Comparar los resultados con otros clasificadores tales como SVM y NN
 
 
 Métodos y resultados
 =============
 
 ## Análisis exploratorio
+
+**YearPredictionMSD** es un *subset* del **MSD**, destinado a la tarea de prediccón del  año de lanzamiento de un track. Esta formado por 515345 registros de canciones correspondientes a 90 características tomadas de cada composición. Las características fueron obtenidas del API de **Echo Nest**. Donde cada composición fue divida en doce segmentos. De los cuales se recuperan los promedios y covarianzas de  todos ellos.
+
+Con respecto a la cantidad de registros por año de lanzamiento, el conjunto de datos se encuetra altamente desbalanceado. Más del 80% correponde a canciones a partir de la primera decada del año 2000.
+
+```{r fig.cap='Distribución de las canciones por año'}
+ggplot(data) + aes(year)+geom_histogram()
+```
+
+
+
+
 
 ```{r }
 # Presenta el MSE a diferente número de predictores
@@ -243,11 +260,193 @@ predict(modelo.ridge, type = "coefficients", s = cv.ridge$lambda.min)
 
 ## Enfoque problema de la clasificación
 
+
+Un mejor enfoque para el problema, es considerarlo como  un problema de clasificación multiclase, por tanto probaremos ahora con algunos clasificadores y tambien comparar desempeños
+
+
+```{r}
+rm(X_tr,Y_tr,X_te,Y_te, test.mat, pred)
+```
+
+
 ### Downsampling
+
+
+```{r}
+# Agrupando las canciones por decadas, las canciones de las decadas 20 y 40 
+# se ingresan a una misma categoría
+  data_clas<-data %>% 
+  mutate(decades=sapply(year,function(x){x-x%%10})) %>% 
+  mutate(decades=sapply(decades,function(x){ifelse(x<1950,1940,x)})) %>% 
+  dplyr::select(-c(year))
+```
+
+
+
+```{r}
+anios<- unique(data_clas$decades)[unique(data_clas$decades)>1940]
+muestrabal<-sapply(anios,function(x){
+  set.seed(1)
+  sample(  which(data_clas$decades==x),2500,replace = F)}) %>% as.vector()
+data_clas<-data_clas[muestrabal,]
+set.seed(1)
+train<-sample(1:nrow(data_clas),p*nrow(data_clas))
+
+```
+
+
+Nuestro dataset tiene algunas características que pueden dificultar la tarea. Primero se encuentra altamente desbalanceado, es decir pocas categorias (años de lanzamiento) agrupan un volumen imporante de los datos, lo cual estorba el aprendizaje para categorías de menor volumen. Por otra parte existen muchas categorias, es decir muchos años por predecir, esto aumenta el costo computacional al  ajustar un modelo adecuado. Así se realizan los siguientes ajustes en el dataset
+
+
+1. Agrupamos las piezas musicales por  década del lanzamiento
+1. Seleccionamos aleatoriamente una muestra de 1000 ejemplos por década.
+
+La gráfica muestra la frecuencia por clases en el conjunto balanceado.
+
+```{r fig.cap='Dataset balanceado'}
+ggplot(data_clas) + aes(decades)+geom_histogram()
+```
+
+
+Como parte de la exploración del conjunto de datos, tratamos de identificar alguna variable que pueda ser buen discriminante de las clases. En los gráficos de muestra la variabilidad de la media de los tracks agrupados por décadas tanto en las variables `TimbreAvg`y `TimbreCov`. Se muestra la dispersión
+
+```{r fig.cap='Dispersión de los décadas sobre TimbreAvg y TimbreCov '}
+p1<-data_clas %>% 
+  dplyr::select(decades,starts_with('TimbreAvg')) %>% 
+  gather('TimbreAvg','Val',starts_with('TimbreAvg'))%>% 
+  group_by(decades,TimbreAvg) %>% 
+  summarise(mean=mean(Val)) %>% 
+  ggplot() + 
+  aes(x=as.factor(decades),y=TimbreAvg,fill=mean) +
+  geom_tile()+
+  scale_fill_gradient(low="green", high="red")+
+  labs(x='Década de lanzamiento')+
+  theme(legend.position = "none")
+
+
+p2<-data_clas %>% 
+  dplyr::select(decades,starts_with('TimbreCov')) %>% 
+  gather('TimbreCov','Val',starts_with('TimbreCov'))%>% 
+  group_by(decades,TimbreCov) %>% 
+  summarise(mean=mean(Val)) %>% 
+  ggplot() + 
+  aes(x=as.factor(decades),y=TimbreCov,fill=mean) +
+  geom_tile() + 
+  scale_fill_gradient(low="green", high="red")+
+  labs(x='Década de lanzamiento')+
+  theme(legend.position = "none")
+
+
+grid.arrange(p1,p2,ncol=2)
+```
+
+
+Los gráficos muestran un fuerte sobreempalme de las distribuciones de los datos sobre las variables de interés incluso en las que tienen una 'mayor variabilidad', tal y como se observa:
+
+```{r fig.cap='Distribución de los datos'}
+
+
+p1<-data_clas %>% 
+  dplyr::select(decades,TimbreAvg1) %>% 
+  ggplot() + 
+  aes(x=TimbreAvg1,color= as.factor(decades)) +
+  geom_density()+
+  labs(title ='TimbreAvg1' )+
+  theme(legend.position = "none")
+
+
+p2<-data_clas %>% 
+  dplyr::select(decades,TimbreAvg2) %>% 
+  ggplot() + 
+  aes(x=TimbreAvg2,color= as.factor(decades)) +
+  geom_density()+
+  labs(title ='TimbreAvg2' )+
+  theme(legend.position = "none")
+
+
+p3<-data_clas %>% 
+  dplyr::select(decades,TimbreAvg3) %>% 
+  ggplot() + 
+  aes(x=TimbreAvg3,color= as.factor(decades)) +
+  geom_density()+
+  labs(title ='TimbreAvg3' )+
+  theme(legend.position = "none")
+
+
+p7<-data_clas %>% 
+  dplyr::select(decades,TimbreAvg7) %>% 
+  ggplot() + 
+  aes(x=TimbreAvg7,color= as.factor(decades)) +
+  geom_density()+
+  labs(title ='TimbreAvg7' )+
+  theme(legend.position = "none")
+
+grid.arrange(p1,p2,p3,p7,ncol=2)
+```
+
 
 ### Regresión multinomial con Lasso
 
+
+
+```{r}
+predictor<-names(data_clas)!='decades'
+
+mn.lasso<-cv.glmnet(x= as.matrix(data_clas[train,predictor]),
+                    y=data_clas$decades[train],
+                    nfolds = 3,
+                    family = "multinomial", 
+                    alpha = 1
+                    )
+```
+
+
+hjklñ
+
+```{r}
+plot(mn.lasso)
+```
+
+* **Predicción**
+
+
+```{r}
+
+pred<-predict(mn.lasso,
+              newx = as.matrix(data_clas[-train,predictor]),
+             s = "lambda.min", 
+             type = "class")
+
+CM<-table(data_clas$decades[-train],pred)
+
+cm<-xtable(CM, align="r|rrrrrrr", caption = "Matriz de confusión modelo multinomial") %>%
+  print.xtable(
+    floating.environment="table", # use table* environment
+    include.rownames=TRUE,
+    table.placement="!t",
+    comment = FALSE,
+    caption.placement = 'top',print.results = FALSE
+  )
+
+```
+
+`r toString(cm)`
+
+
+```{r include=FALSE}
+ccm<-caret::confusionMatrix(as.factor(data_clas$decades[-train]),as.factor(pred))
+
+```
+
+
 ### Regresión multinomial con componentes principales
+
+
+```{r}
+pca.data<-prcomp(data_clas[,predictor])
+
+```
+
 
 ### Otros métodos de clasificación
 
@@ -257,16 +456,5 @@ Conclusiones
 =============
 
 
-Acknowledgment {#acknowledgment}
-==============
 
-The authors would like to thank...
 
-Bibliography styles
-===================
-
-Here are two sample references: @Feynman1963118 [@Dirac1953888].
-
-\newpage
-References {#references .numbered}
-==========

@@ -209,7 +209,25 @@ lines(1:nVar,mse_test,type="l", pch=19, col="firebrick")
 points(which.min(mse_test),min(mse_test),col='red',pch='*',cex=2)
 
 ```
- 
+
+```{r fig.cap="MSE Forward Selection"}
+
+mse_test_fw <- vector()
+
+for (i in 1:nVar){
+  coefs <- coef(modelo_fw,i)
+  indice <- match(names(coefs)[-1],colnames(X_te))
+  X1_test <- cbind(1,X_te[,indice])
+  Y_gorro <- X1_test%*%coefs
+  mse_test_fw <- c(mse_test_fw, mean((Y_te-Y_gorro)^2))    
+}
+
+plot(mse_test_fw,type="b", pch=19, 
+     ylab="Error cuadrático Medio - PRUEBA",
+     xlab="Número de variables", main ="Modelo Paso Forward", col="#1f66e5" )
+
+```
+
 
 * Backward stepwise selection
 
@@ -247,7 +265,23 @@ points(which.min(mse_test),min(mse_test),col='red',pch='*',cex=2)
 
 ```
 
+```{r fig.cap="MSE Backward Selection"}
 
+mse_test_bw <- vector()
+
+for (i in 1:nVar){
+  coefs <- coef(modelo_bw,i)
+  indice <- match(names(coefs)[-1],colnames(X_te))
+  X1_test <- cbind(1,X_te[,indice])
+  Y_gorro <- X1_test%*%coefs
+  mse_test_bw <- c(mse_test_bw, mean((Y_te-Y_gorro)^2))    
+}
+
+plot(mse_test_bw,type="b", pch=19, 
+     ylab="Error cuadrático Medio - PRUEBA",
+     xlab="Número de variables", main ="Modelo Paso Backward", col="#1f66e5" )
+
+```
 
 
 ### Regresión con contracción  Lasso
@@ -256,26 +290,33 @@ Para enriquecer el modelo, aplicaremos Regresión Lasso, pues además de transfo
 
 
 
-```{r eval=FALSE}
+```{r fig.cap="Modelo Lasso"}
 # REGRESION LASSO
 
+mat_tr <- model.matrix(year ~ ., data = data[muestra,])
+mat_te <- model.matrix(year ~ ., data = data[-muestra,])
 
-data_mat_tr <- model.matrix(year ~ ., data = data)
 
 # Conjunto de valores de lambda 
 lambda = 10 ^ seq(from = -4, to = 4, length = 100)
 # 10-fold cross validation para obtener el mejor lambda
-set.seed(12)
-cv.ridge <- cv.glmnet(x = data_mat, y = Y, alpha = 1, lambda = lambda, thresh = 1e-12, type.measure="mse")
+set.seed(8)
+#set.seed(1)
+#cv_error_lasso <- cv.glmnet(x = x, y = y, alpha = 1, nfolds = 10)
+cv_lasso <- cv.glmnet(x = mat_tr, y = Y_tr, alpha = 1, lambda = lambda, thresh = 1e-12, type.measure="mse",nfolds = 10)
+plot(cv_lasso)
+l_lasso <- cv_lasso$lambda.min
+#l_lasso <- cv_lasso$lambda.1se
 
-plot(cv.ridge)  
+#modelo lasso
+model_lasso <- glmnet (mat_tr,Y_tr, alpha =1, lambda =l_lasso, thresh =1e-8) 
 
-cv.ridge$lambda.min
-glmnet(X,Y)
-# Se excluye la primera columna con los nombres de las universidades
-modelo.ridge <- glmnet(X, Y, alpha = 0)
-# Coeficientes del modelo
-predict(modelo.ridge, type = "coefficients", s = cv.ridge$lambda.min)
+#evaluamos el modelo
+ypred_lasso <- predict(model_lasso ,s=l_lasso ,newx=mat_te) 
+#error cuadrático medio de prueba
+msete_lasso <- mean((ypred_lasso - Y_te)^2)
+
+
 
 ```
 
@@ -288,6 +329,19 @@ Otra manera de disminuir dimensión es a través del modelo PCR (Principal Compo
 
 
 Revisando los errores de prueba, podemos observar que no existe un cambio muy significativo en utilizar todas las variables (90) o un tercio de ellas, por lo que seleccionaremos entonces un modelo reducido.
+
+```{r fig.cap=PCR}
+model_pcr <- pcr(year ~ ., data=data[muestra,], scale=TRUE,validation ="CV")
+#summary(model_pcr)
+
+validationplot(model_pcr,val.type="MSEP")
+
+#Evaluamos el modelo
+ypred_pcr <- predict(model_pcr, X_te, ncomp=30) [,1,]
+msete_pcr <- mean((ypred_pcr- Y_te)^2) 
+
+```
+
 
 
 ## Enfoque problema de la clasificación

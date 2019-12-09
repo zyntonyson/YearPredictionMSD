@@ -342,6 +342,18 @@ msete_pcr <- mean((ypred_pcr- Y_te)^2)
 
 ```
 
+```{r fig.cap=Comparación MSE para modelos}
+valores_testMSE <- data.frame(metodo = c("OLS", "Forward Select","Backward Select", "PCR",
+                                         "Lasso"),
+                              MSE_te = c(mse_test_ols, mse_test_fw[30], mse_test_bw[30],
+                                         msete_pcr, msete_lasso))
+
+ggplot(data = valores_testMSE, aes(x = metodo, y = MSE_te)) +
+  geom_col(width = 0.5, fill="#2b602c") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ xlab("Método") + ylab("MSE Test")              
+
+```
+
 
 
 ## Enfoque problema de la clasificación

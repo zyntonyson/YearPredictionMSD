@@ -19,10 +19,14 @@ abstract: |
   Se presenta el trabajo como reporte final de la materia 'Cómputo Estadístico', se explora la  eficacia de métodos lineales y lineales generalizados para la predicción del año de lanzamiento de una canción. Tambien se presenta la comparacíón con otros métodos de clasificación
 header-includes:
   \usepackage{graphicx}
-  \usepackage{amsmath}  
+  \usepackage{amsmath}
+  \usepackage{amsfonts}
+  \usepackage{amssymb}
   \usepackage{algorithm}
   \usepackage{algorithmic}
   \usepackage{array}
+  \usepackage{float}
+  \usepackage{longtable} 
   \renewcommand{\figurename}{Figura}
   \renewcommand{\tablename}{Tabla}
   \setcounter{tocdepth}{5} 
@@ -46,7 +50,7 @@ library(MASS)
 library(glmnet)
 
 
-knitr::opts_chunk$set(echo = FALSE, message=FALSE, out.width='60%', fig.pos= "ht",fig.align='center' , warning = FALSE,comment=NA)
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, out.width='60%', fig.pos= "H",fig.align='center' , warning = FALSE,comment=NA)
 
 #Datos crudos
 data <- read_csv("data/YearPredictionMSD.txt", 
@@ -146,6 +150,14 @@ Y_te = as.matrix(data[-muestra,1])
 
 ### Regresión ordinaria (mejor subconjunto)
 
+
+En primera instancia aplicamos un modelo de regresión múltiple al conjunto de datos
+
+Agregar el resumen de la regresión
+
+Obtenemos un $R^2$ ajustado mucho menor de lo que esperamos, así que desde este punto podemos inferir que quizá el análisis con regresión lineal no es el óptimo
+
+
 ```{r}
 nVar<-90
 # seleccion mejor subconjunto de variables
@@ -155,7 +167,15 @@ modelo_bw <- regsubsets(X_tr, Y_tr, method = "backward", nvmax = nVar)
 
 ```
 
- * Forward stepwise selection
+Dado el gran número de variables, aplicaremos métodos de selección de mejores subconjuntos, para poder trabajar con menos variables.
+Tomando como valor de referencia el error cuadrático, podemos revisar como evoluciona al incrementar el número de variables.
+Es bien sabido que la mejor forma de seleccionar estas variables es haciendo todas las combinaciones posibles de las mismas, pero debido al costo computacional, aplicaremos esta selección con 2 *criterios* paso forward y paso backward
+
+
+* Forward stepwise selection
+
+Podemos revisar que ambos modelos son muy similares para diferentes métricas como son R2, BIC, AIC, así que tomar alguno de ellos podrá darnos resultados similares.
+
  
 ```{r fig.cap='Forward stepwise selection'}
 #modelo con paso fwd
@@ -191,7 +211,9 @@ points(which.min(mse_test),min(mse_test),col='red',pch='*',cex=2)
 ```
  
 
-   * Forward stepwise selection
+* Backward stepwise selection
+
+Podemos revisar que ambos modelos son muy similares para diferentes métricas como son R2, BIC, AIC, así que tomar alguno de ellos podrá darnos resultados similares.
 
 
 ```{r  fig.cap='Backward stepwise selection'}
@@ -230,6 +252,10 @@ points(which.min(mse_test),min(mse_test),col='red',pch='*',cex=2)
 
 ### Regresión con contracción  Lasso
 
+Para enriquecer el modelo, aplicaremos Regresión Lasso, pues además de transformar los coeficiente del modelo, aplica una penalización que nos puede ayudar a seleccionar variables, debido a que algunos de los coeficientes los tornará 0.
+
+
+
 ```{r eval=FALSE}
 # REGRESION LASSO
 
@@ -256,6 +282,12 @@ predict(modelo.ridge, type = "coefficients", s = cv.ridge$lambda.min)
 
 
 ###  Regresión con componentes principales
+
+Otra manera de disminuir dimensión es a través del modelo PCR (Principal Component Regression) en donde aplicamos PCA a los datos y vamos calculando métricas que nos ayuden a decidir cuál es el mejor modelo.
+
+
+
+Revisando los errores de prueba, podemos observar que no existe un cambio muy significativo en utilizar todas las variables (90) o un tercio de ellas, por lo que seleccionaremos entonces un modelo reducido.
 
 
 ## Enfoque problema de la clasificación
@@ -387,28 +419,26 @@ grid.arrange(p1,p2,p3,p7,ncol=2)
 
 ### Regresión multinomial con Lasso
 
-
+Usamos un modelo multinomial con restricción Lasso para disminuir la cantidad de variables
 
 ```{r}
 predictor<-names(data_clas)!='decades'
 
 mn.lasso<-cv.glmnet(x= as.matrix(data_clas[train,predictor]),
                     y=data_clas$decades[train],
-                    nfolds = 3,
+                    nfolds = 10,
                     family = "multinomial", 
                     alpha = 1
                     )
 ```
 
 
-hjklñ
+En vista, que el dataset balanceado tiene 7 clases, ajustamos un modelo de regresión multiclase, (glm de familia multinomial). Se *cross-validation* con 10 folds y se ajusta $\lambda$ que minimice el error de clasificación.
 
-```{r}
-plot(mn.lasso)
-```
 
 * **Predicción**
 
+Se presenta la matriz de confusión del modelo con el conjunto de prueba, se tiene un *accuracy* de 0.41
 
 ```{r}
 
@@ -441,11 +471,71 @@ ccm<-caret::confusionMatrix(as.factor(data_clas$decades[-train]),as.factor(pred)
 
 ### Regresión multinomial con componentes principales
 
+De nuevo para obtener un modelo reducido, probamos un modelo basado en componentes principales. Para escoger la cantidad de componentes evaluamos el **accuracy** de modelos con diferente cantidad de componentes
+
 
 ```{r}
-pca.data<-prcomp(data_clas[,predictor])
+pca.data<-prcomp(data_clas[train,predictor])
+```
+
+* **Predicción**
+
+
+```{r include=FALSE}
+
+npca_test<-seq(5,70,by=5)
+acc_pca<-rep(0,length(npca_test))
+pos<-1
+
+for(i in npca_test)
+{
+  
+  pca_train_df<-data.frame(decade=data_clas$decades[train],x=pca.data$x[,c(1:i)])
+
+pca.x.test<-as.matrix(data_clas[-train,predictor])%*%pca.data$rotation[,c(1:i)]
+
+pca_test_df<-data.frame(decade=data_clas$decades[-train],x=pca.x.test)
+names_df<-c('decades',sapply(1:i,function(x){paste('PC',x,sep='')}))
+
+names(pca_train_df)<-names_df
+names(pca_test_df)<-names_df
+
+mod.multinom.pca<-nnet::multinom(decades~.,data=pca_train_df)
+pred<-predict(mod.multinom.pca,
+              newdata=pca_test_df[,-1],type='class')
+
+acc_pca[pos]<-ifelse(pca_test_df$decades==pred,1,0) %>% mean()
+pos<-pos+1
+  }
 
 ```
+
+Se muestra en el gráfico, el cambio de  *accuracy* con el número de componentes y la matriz de confusión. El *accuracy* es de 0.34 
+
+```{r fig.cap='Cantidad de PCA y acc'}
+ggplot()+
+  aes(npca_test,acc_pca)+
+  geom_point()+
+  geom_line()+
+  labs(x='Cantidad de PCA',y='acc')
+```
+
+
+
+```{r}
+CM<-table(pca_test_df$decades,pred)
+
+cm<-xtable(CM, align="r|rrrrrrr", caption = "Matriz de confusión PCR") %>%
+  print.xtable(
+    floating.environment="table", # use table* environment
+    include.rownames=TRUE,
+    table.placement="!t",
+    comment = FALSE,
+    caption.placement = 'top',print.results = FALSE
+  )
+```
+
+`r toString(cm)`
 
 
 ### Otros métodos de clasificación

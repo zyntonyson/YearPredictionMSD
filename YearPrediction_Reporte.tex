@@ -522,11 +522,33 @@ correponde a canciones a partir de la primera decada del año 2000.
 \subsubsection{Regresión ordinaria (mejor
 subconjunto)}\label{regresion-ordinaria-mejor-subconjunto}}
 
+En primera instancia aplicamos un modelo de regresión múltiple al
+conjunto de datos
+
+Agregar el resumen de la regresión
+
+Obtenemos un \(R^2\) ajustado mucho menor de lo que esperamos, así que
+desde este punto podemos inferir que quizá el análisis con regresión
+lineal no es el óptimo
+
+Dado el gran número de variables, aplicaremos métodos de selección de
+mejores subconjuntos, para poder trabajar con menos variables. Tomando
+como valor de referencia el error cuadrático, podemos revisar como
+evoluciona al incrementar el número de variables. Es bien sabido que la
+mejor forma de seleccionar estas variables es haciendo todas las
+combinaciones posibles de las mismas, pero debido al costo
+computacional, aplicaremos esta selección con 2 \emph{criterios} paso
+forward y paso backward
+
 \begin{itemize}
 \tightlist
 \item
   Forward stepwise selection
 \end{itemize}
+
+Podemos revisar que ambos modelos son muy similares para diferentes
+métricas como son R2, BIC, AIC, así que tomar alguno de ellos podrá
+darnos resultados similares.
 
 \begin{figure}[H]
 
@@ -540,8 +562,12 @@ subconjunto)}\label{regresion-ordinaria-mejor-subconjunto}}
 \begin{itemize}
 \tightlist
 \item
-  Forward stepwise selection
+  Backward stepwise selection
 \end{itemize}
+
+Podemos revisar que ambos modelos son muy similares para diferentes
+métricas como son R2, BIC, AIC, así que tomar alguno de ellos podrá
+darnos resultados similares.
 
 \begin{figure}[H]
 
@@ -556,9 +582,35 @@ subconjunto)}\label{regresion-ordinaria-mejor-subconjunto}}
 \subsubsection{Regresión con contracción
 Lasso}\label{regresion-con-contraccion-lasso}}
 
+Para enriquecer el modelo, aplicaremos Regresión Lasso, pues además de
+transformar los coeficiente del modelo, aplica una penalización que nos
+puede ayudar a seleccionar variables, debido a que algunos de los
+coeficientes los tornará 0.
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-7-1} 
+
+}
+
+\caption{Regresion Lasso lambda óptima}\label{fig:unnamed-chunk-7}
+\end{figure}
+
+\begin{verbatim}
+[1] 91.57355
+\end{verbatim}
+
 \hypertarget{regresion-con-componentes-principales}{%
 \subsubsection{Regresión con componentes
 principales}\label{regresion-con-componentes-principales}}
+
+Otra manera de disminuir dimensión es a través del modelo PCR (Principal
+Component Regression) en donde aplicamos PCA a los datos y vamos
+calculando métricas que nos ayuden a decidir cuál es el mejor modelo.
+
+Revisando los errores de prueba, podemos observar que no existe un
+cambio muy significativo en utilizar todas las variables (90) o un
+tercio de ellas, por lo que seleccionaremos entonces un modelo reducido.
 
 \hypertarget{enfoque-problema-de-la-clasificacion}{%
 \subsection{Enfoque problema de la
@@ -592,11 +644,11 @@ La gráfica muestra la frecuencia por clases en el conjunto balanceado.
 
 \begin{figure}[H]
 
-{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-11-1} 
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-12-1} 
 
 }
 
-\caption{Dataset balanceado}\label{fig:unnamed-chunk-11}
+\caption{Dataset balanceado}\label{fig:unnamed-chunk-12}
 \end{figure}
 
 Como parte de la exploración del conjunto de datos, tratamos de
@@ -607,11 +659,11 @@ tracks agrupados por décadas tanto en las variables \texttt{TimbreAvg}y
 
 \begin{figure}[H]
 
-{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-12-1} 
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-13-1} 
 
 }
 
-\caption{Dispersión de los décadas sobre TimbreAvg y TimbreCov }\label{fig:unnamed-chunk-12}
+\caption{Dispersión de los décadas sobre TimbreAvg y TimbreCov }\label{fig:unnamed-chunk-13}
 \end{figure}
 
 Los gráficos muestran un fuerte sobreempalme de las distribuciones de
@@ -620,11 +672,11 @@ los datos sobre las variables de interés incluso en las que tienen una
 
 \begin{figure}[H]
 
-{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-13-1} 
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-14-1} 
 
 }
 
-\caption{Distribución de los datos}\label{fig:unnamed-chunk-13}
+\caption{Distribución de los datos}\label{fig:unnamed-chunk-14}
 \end{figure}
 
 \hypertarget{regresion-multinomial-con-lasso}{%
@@ -686,11 +738,11 @@ componentes y la matriz de confusión. El \emph{accuracy} es de 0.34
 
 \begin{figure}[H]
 
-{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-19-1} 
+{\centering \includegraphics[width=0.6\linewidth]{YearPrediction_Reporte_files/figure-latex/unnamed-chunk-20-1} 
 
 }
 
-\caption{Cantidad de PCA y acc}\label{fig:unnamed-chunk-19}
+\caption{Cantidad de PCA y acc}\label{fig:unnamed-chunk-20}
 \end{figure}
 
 \begin{table}[!t]
@@ -714,6 +766,65 @@ componentes y la matriz de confusión. El \emph{accuracy} es de 0.34
 \hypertarget{otros-metodos-de-clasificacion}{%
 \subsubsection{Otros métodos de
 clasificación}\label{otros-metodos-de-clasificacion}}
+
+Una de las soluciones comunes para el problema es el uso de
+clasificadores tales como \emph{support vector machine}, redes
+neuronales, boosting o \emph{random forest}. Se presenta el resultado de
+las matrices de confusión.
+
+\begin{itemize}
+\tightlist
+\item
+  \emph{SVM} Se ajuste un modelo \emph{SVM} con kernel lineal para la
+  tarea de clasificación, se presenta la tabla de confusión. El accuracy
+  es de
+\end{itemize}
+
+\begin{table}[!t]
+\centering
+\caption{Matriz de confusión SVM} 
+\begin{tabular}{r|rrrrrrr}
+  \hline
+ & 1950 & 1960 & 1970 & 1980 & 1990 & 2000 & 2010 \\ 
+  \hline
+1 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\ 
+  2 & 0.00 & 766.00 & 262.00 & 98.00 & 110.00 & 115.00 & 59.00 \\ 
+  3 & 0.00 & 147.00 & 436.00 & 180.00 & 110.00 & 108.00 & 77.00 \\ 
+  4 & 0.00 & 26.00 & 142.00 & 425.00 & 159.00 & 111.00 & 50.00 \\ 
+  5 & 0.00 & 20.00 & 59.00 & 133.00 & 419.00 & 154.00 & 47.00 \\ 
+  6 & 0.00 & 23.00 & 43.00 & 72.00 & 94.00 & 231.00 & 121.00 \\ 
+  7 & 0.00 & 9.00 & 33.00 & 33.00 & 50.00 & 149.00 & 284.00 \\ 
+  8 & 0.00 & 9.00 & 25.00 & 59.00 & 58.00 & 132.00 & 362.00 \\ 
+   \hline
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+\tightlist
+\item
+  \emph{Red neuronal}
+\end{itemize}
+
+Ajustamos a una red neuronal con una sola capa de procesamiento de 15
+neuronas, con la salida de clasificación \emph{softmax}. Se presenta
+
+\begin{table}[!t]
+\centering
+\caption{Matriz de confusión NN} 
+\begin{tabular}{r|rrrrrrr}
+  \hline
+ & 1950 & 1960 & 1970 & 1980 & 1990 & 2000 & 2010 \\ 
+  \hline
+1 & 0.00 & 121.00 & 47.00 & 43.00 & 35.00 & 69.00 & 58.00 \\ 
+  2 & 0.00 & 845.00 & 872.00 & 846.00 & 797.00 & 774.00 & 753.00 \\ 
+  3 & 0.00 & 0.00 & 0.00 & 0.00 & 1.00 & 0.00 & 1.00 \\ 
+  4 & 0.00 & 15.00 & 49.00 & 57.00 & 102.00 & 72.00 & 63.00 \\ 
+  5 & 0.00 & 0.00 & 1.00 & 1.00 & 1.00 & 1.00 & 2.00 \\ 
+  6 & 0.00 & 4.00 & 1.00 & 1.00 & 2.00 & 4.00 & 5.00 \\ 
+  7 & 0.00 & 15.00 & 30.00 & 52.00 & 62.00 & 80.00 & 118.00 \\ 
+   \hline
+\end{tabular}
+\end{table}
 
 \hypertarget{conclusiones}{%
 \section{Conclusiones}\label{conclusiones}}

@@ -256,26 +256,48 @@ Para enriquecer el modelo, aplicaremos Regresión Lasso, pues además de transfo
 
 
 
-```{r eval=FALSE}
+```{r fig.cap='Regresion Lasso lambda óptima'}
 # REGRESION LASSO
+#importante la semilla
+n = nrow(data)
+
+set.seed(1)
+muestra <- sample(1:nrow(data), n*.6)
+Y_tr = as.matrix(data[muestra,1])
+Y_te = as.matrix(data[-muestra,1])
 
 
-data_mat_tr <- model.matrix(year ~ ., data = data)
+mat_tr <- model.matrix(year ~ ., data = data[muestra,])
+mat_te <- model.matrix(year ~ ., data = data[-muestra,])
+
 
 # Conjunto de valores de lambda 
 lambda = 10 ^ seq(from = -4, to = 4, length = 100)
 # 10-fold cross validation para obtener el mejor lambda
-set.seed(12)
-cv.ridge <- cv.glmnet(x = data_mat, y = Y, alpha = 1, lambda = lambda, thresh = 1e-12, type.measure="mse")
+set.seed(8)
+#set.seed(1)
+#cv_error_lasso <- cv.glmnet(x = x, y = y, alpha = 1, nfolds = 10)
+cv_lasso <- cv.glmnet(x = mat_tr, y = Y_tr, alpha = 1, lambda = lambda, thresh = 1e-12, type.measure="mse",nfolds = 10)
+plot(cv_lasso)
+```
 
-plot(cv.ridge)  
 
-cv.ridge$lambda.min
-glmnet(X,Y)
-# Se excluye la primera columna con los nombres de las universidades
-modelo.ridge <- glmnet(X, Y, alpha = 0)
-# Coeficientes del modelo
-predict(modelo.ridge, type = "coefficients", s = cv.ridge$lambda.min)
+
+
+```{r}
+l_lasso <- cv_lasso$lambda.min
+l_lasso <- cv_lasso$lambda.1se
+
+#modelo lasso
+model_lasso <- glmnet (mat_tr,Y_tr, alpha =1, lambda =l_lasso, thresh =1e-8) 
+
+#evaluamos el modelo
+ypred_lasso <- predict(model_lasso ,s=l_lasso ,newx=mat_te) 
+#error cuadrático medio de prueba
+msete_lasso <- mean((ypred_lasso - Y_te)^2)
+msete_lasso 
+
+#coef(model_lasso)
 
 ```
 
@@ -284,6 +306,29 @@ predict(modelo.ridge, type = "coefficients", s = cv.ridge$lambda.min)
 ###  Regresión con componentes principales
 
 Otra manera de disminuir dimensión es a través del modelo PCR (Principal Component Regression) en donde aplicamos PCA a los datos y vamos calculando métricas que nos ayuden a decidir cuál es el mejor modelo.
+
+
+```{r}
+model_pcr <- pcr(year ~ ., data=data[muestra,], scale=TRUE,validation ="CV")
+summary(model_pcr)
+
+validationplot(model_pcr,val.type="MSEP")
+
+#Evaluamos el modelo
+ypred_pcr <- predict(model_pcr, X_te, ncomp=30) [,1,]
+msete_pcr <- mean((ypred_pcr- Y_te)^2) 
+
+
+valores_testMSE <- data.frame(metodo = c("OLS", "Forward Select","Backward Select", "PCR",
+                                         "Lasso"),
+                              MSE_te = c(mse_test_ols, mse_test_fw[30], mse_test_bw[30],
+                                         msete_pcr, msete_lasso))
+
+ggplot(data = valores_testMSE, aes(x = metodo, y = MSE_te)) +
+  geom_col(width = 0.5, fill="#2b602c") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ xlab("Método") + ylab("MSE Test")              
+
+```
 
 
 
@@ -426,7 +471,7 @@ predictor<-names(data_clas)!='decades'
 
 mn.lasso<-cv.glmnet(x= as.matrix(data_clas[train,predictor]),
                     y=data_clas$decades[train],
-                    nfolds = 10,
+                    nfolds = 3,
                     family = "multinomial", 
                     alpha = 1
                     )
@@ -434,7 +479,6 @@ mn.lasso<-cv.glmnet(x= as.matrix(data_clas[train,predictor]),
 
 
 En vista, que el dataset balanceado tiene 7 clases, ajustamos un modelo de regresión multiclase, (glm de familia multinomial). Se *cross-validation* con 10 folds y se ajusta $\lambda$ que minimice el error de clasificación.
-
 
 * **Predicción**
 
@@ -540,7 +584,56 @@ cm<-xtable(CM, align="r|rrrrrrr", caption = "Matriz de confusión PCR") %>%
 
 ### Otros métodos de clasificación
 
+Una de las soluciones comunes para el problema es el uso de clasificadores tales como *support vector machine*, redes neuronales, boosting o *random forest*. Se presenta el resultado de las matrices de confusión.
 
+* *SVM*
+Se ajuste un modelo *SVM* con kernel lineal para la tarea de clasificación, se presenta  la tabla de confusión. El accuracy es de 
+
+```{r}
+cm.svm <- read_table2("docs/svm_test_table.txt")
+row.names(cm.svm)<-cm.svm$"1940"
+cm.svm<-cm.svm[,-1]
+
+
+cm<-xtable(cm.svm, align="r|rrrrrrr", caption = "Matriz de confusión SVM") %>%
+  print.xtable(
+    floating.environment="table", # use table* environment
+    include.rownames=TRUE,
+    table.placement="!t",
+    comment = FALSE,
+    caption.placement = 'top',print.results = FALSE
+  )
+
+
+
+
+```
+`r toString(cm)`
+
+* *Red neuronal*
+
+Ajustamos a una red neuronal con una sola capa de procesamiento de 15 neuronas, con la salida de clasificación *softmax*. Se presenta 
+
+
+```{r}
+cm.nn<-read_table2("docs/nn_test_table.txt")
+row.names(cm.nn)<-cm.nn$"1940"
+cm.nn<-cm.nn[,-1]
+
+
+cm<-xtable(cm.nn, align="r|rrrrrrr", caption = "Matriz de confusión NN") %>%
+  print.xtable(
+    floating.environment="table", # use table* environment
+    include.rownames=TRUE,
+    table.placement="!t",
+    comment = FALSE,
+    caption.placement = 'top',print.results = FALSE
+  )
+
+
+```
+
+`r toString(cm)`
 
 Conclusiones
 =============

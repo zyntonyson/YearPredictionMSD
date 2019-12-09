@@ -7,6 +7,7 @@ library("tidyverse")
 library("magrittr")
 library("glmnet")
 library("pls")
+library("ggplot2")
 
 
 #lectura de archivos
@@ -35,6 +36,16 @@ X_te = as.matrix(data[-muestra,-1])
 Y_te = as.matrix(data[-muestra,1])
 
 nVar<-90
+
+
+#Regresion Lineal 
+
+model_lm <- lm(year~., data = data[muestra,])
+summary(model_lm)
+
+X1_test <- cbind(1,X_te)
+Y_gorro <- X1_test%*%coef(model_lm)
+mse_test_ols <- mean((Y_te-Y_gorro)^2)
 
 # seleccion mejor subconjunto de variables
 
@@ -69,10 +80,10 @@ par(mfrow=c(1,1))
 #par(mfrow=c(1,1))
 
 #aun seleccionando todas las variables el R_cuadrado es muy bajo, del .15, por lo que quizá la regresion no es la mejor opción
-# veremos las 15 variables más importantes
+# veremos las 30 variables más importantes
 
-coef_bw <- coef(modelo_bw, 15)
-coef_fw <- coef(modelo_fw, 15)
+coef_bw <- coef(modelo_bw, 30)
+coef_fw <- coef(modelo_fw, 30)
 
 # estas son las variables en las que difieren los modelos
 names(coef_bw) [is.na ( match(names(coef_bw),names( coef_fw)) )]
@@ -142,5 +153,15 @@ summary(model_pcr)
 validationplot(model_pcr,val.type="MSEP")
 
 #Evaluamos el modelo
-ypred_pcr <- predict(model_pcr, X_te, ncomp=39) [,1,]
-mean((ypred_pcr- Y_te)^2) 
+ypred_pcr <- predict(model_pcr, X_te, ncomp=30) [,1,]
+msete_pcr <- mean((ypred_pcr- Y_te)^2) 
+
+
+valores_testMSE <- data.frame(metodo = c("OLS", "Forward Select","Backward Select", "PCR",
+                                         "Lasso"),
+                              MSE_te = c(mse_test_ols, mse_test_fw[30], mse_test_bw[30],
+                                         msete_pcr, msete_lasso))
+
+ggplot(data = valores_testMSE, aes(x = metodo, y = MSE_te)) +
+  geom_col(width = 0.5, fill="#2b602c") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ xlab("Método") + ylab("MSE Test")              

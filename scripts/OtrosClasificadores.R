@@ -4,6 +4,9 @@ library("e1071")
 library("tidyverse")
 library("magrittr")
 library("ROSE")
+library("caret")
+library("neuralnet")
+
 # Cargar datos
 data <- read_csv("data/YearPredictionMSD.txt", col_names = FALSE)
 
@@ -41,11 +44,7 @@ data %<>%
   mutate(decades=sapply(year,function(x){x-x%%10})) %>% 
   mutate(decades=sapply(decades,function(x){ifelse(x<1950,1940,x)}))
 
-#v = table(data$decades)[-1]
-#muestras <- lapply(1:7, function (x) sample(1:v[x], v[x]*.6))
-
-
-#data <- as.data.frame(data)
+# para este caso vamos a dejar fuera las canciones antes de 1940
 data$decades <- as.factor(data$decades)
 data_tr <- data[muestra,]
 data_tr <- data_tr[data_tr$decades!=1940,]
@@ -53,18 +52,44 @@ data_te <- data[muestra,]
 data_te <- data_te[data_te$decades!=1940,]
 
 
-
-#(data[muestra ])
-#db_muestra <-  undersample_ds(data[muestra,], "decades", 10)
-
-#dt <- ROSE(decades ~ ., data, method = "under",N = 100, seed = 3)
+#realizamos un muestreo balanceado tomando 1500 para entrenamiento y 1000 para prueba
 set.seed(3)
 db_tr <- data_tr %>% group_by(decades) %>% sample_n(1500)
 db_te <- data_te %>% group_by(decades) %>% sample_n(1000)
 
 db_tr <- db_tr[,-1]
 db_te <- db_te[,-1]
-# SUPORT VECTOR MACHINE
 
-modelo_svm <- tune("svm", decades ~ ., data = db_tr, kernel = "linear", 
-     ranges = list(cost = c( 0.001,0.1, 1)))
+#### SUPORT VECTOR MACHINE ####
+
+modelo_svm <- tune("svm", decades ~ ., data = db_tr, ranges = list(cost = c(0.1, 1)), kernel = "linear", scale=TRUE)
+# seleccionamos mejor modelo
+svm_bmodel <- modelo_svm$best.model
+
+#evaluamos en datos de entrenamiento
+y_tr_pred <-  svm_bmodel$fitted
+table(predict = y_tr_pred , real = db_tr$decades)
+sum(y_tr_pred == db_tr$decades)/nrow(db_tr)
+
+#evaluamos en datos de prueba
+predicc <- predict(object = modelo_svm$best.model, newdata = db_te)
+cf_te <- confusionMatrix(predicc, db_te$decades, mode = "everything")
+cf_te
+sum(predicc==db_te$decades)/nrow(db_te)
+
+#### RED NEURONAL SIMPLE ####
+
+nntr <- neuralnet(decades~.,data=db_tr, hidden=15, threshold = .01,linear.output = FALSE)
+
+#Predict datos de entrenamiento
+nntrain <- compute(nntr,db_tr[,-ncol(db_tr)])
+Ynntrain <- (apply(nntrain$net.result,1, which.max) + 4)*10 + 1900
+table(Ynntrain, db_tr$decades)
+sum(Ynntrain==db_tr$decades)/nrow(db_tr)
+
+
+#Predict datos de prueba
+nntest <-  compute(nntr,db_te[,-ncol(db_te)])
+Ynntest <- (apply(nntest$net.result,1, which.max) + 4 )*10 + 1900
+table(Ynntest, db_te$decades)
+sum(Ynntest==db_te$decades)/nrow(db_te)
